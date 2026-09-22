@@ -26,17 +26,18 @@ Off-campus housing information for students at Howard University — covering av
 
 | # | Source | Type | URL or file path |
 |---|--------|------|-----------------|
-| 1 | | | |
-| 2 | | | |
-| 3 | | | |
-| 4 | | | |
-| 5 | | | |
-| 6 | | | |
-| 7 | | | |
-| 8 | | | |
-| 9 | | | |
-| 10 | | | |
-https://howard.offcampuspartners.com/resources/article/5524-frequently-asked-questions
+| 1 | Howard Off-Campus Partners FAQ | Official housing FAQ page | https://howard.offcampuspartners.com/resources/article/5524-frequently-asked-questions |
+| 2 | The Lanes at Union Market — Google Maps reviews | Scraped tenant reviews | https://maps.app.goo.gl/gCeygqGkUtPsWzaG8 |
+| 3 | Clover at The Parks — Google Maps reviews | Scraped tenant reviews | https://maps.app.goo.gl/MgDBBtSYtM8wjmuNA |
+| 4 | Vie Towers — Google Maps reviews | Scraped tenant reviews | https://maps.app.goo.gl/DDBBFPmxp6Hbh5Pt5 |
+| 5 | Trellis House Apartments — Google Maps reviews | Scraped tenant reviews | https://maps.app.goo.gl/qq3GdLDvdx2BRx3D7 |
+| 6 | Howard Student Affairs — housing tips article | University article | https://studentaffairs.howard.edu/articles/6-tips-finding-campus-housing |
+| 7 | The Lanes property info sheet | University PDF | https://auxiliary.howard.edu/sites/auxiliary.howard.edu/files/2024-10/the%20lanes%20v2.pdf |
+| 8 | Howard Real Estate Development & Capital Asset Management (REDCAM) | University real estate page | https://realestate.howard.edu/media/2396 |
+
+Reviews for entries 2–5 were scraped directly from each property's Google Maps listing to capture first-hand tenant experiences not covered by official university sources.
+
+
 
 
 ---
