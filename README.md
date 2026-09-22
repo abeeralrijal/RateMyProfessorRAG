@@ -51,13 +51,15 @@ Reviews for entries 2–5 were scraped directly from each property's Google Maps
      - Any preprocessing you did before chunking (e.g., stripping HTML, removing headers)
      - What your final chunk count was across all documents -->
 
-**Chunk size:**
+**Chunk size:** 500 characters
 
-**Overlap:**
+**Overlap:** 100 characters
 
-**Why these choices fit your documents:**
+**Why these choices fit your documents:** I checked the actual review lengths across all four properties. The median review is about 225 characters and roughly half of all reviews are under 200 characters, but some run past 1,000 characters and a few go over 4,000. The FAQ and tips PDFs are made of longer paragraphs, usually a few hundred characters each. A 500 character chunk keeps most short reviews whole in a single chunk, so a one or two sentence review stays a complete thought instead of getting cut in half. Longer reviews and PDF paragraphs get split into two or more chunks. I split on sentence boundaries instead of a raw character cutoff, so a chunk never ends mid-sentence. The 100 character overlap means a fact sitting right at a chunk boundary still shows up in the neighboring chunk.
 
-**Final chunk count:**
+Before chunking, `ingest.py` loads and cleans the raw documents: it drops Google review entries with no written text (star ratings only), strips leading/trailing navigation and footer boilerplate from the PDF pages (e.g. "Back to Home", "Categories", "Was this article helpful?"), and parses the tabular shuttle schedule PDF into full sentences instead of leaving it as a raw table dump.
+
+**Final chunk count:** 464 chunks across 279 cleaned documents (260 reviews, 13 schedule entries, 6 article pages).
 
 ---
 
@@ -69,11 +71,11 @@ Reviews for entries 2–5 were scraped directly from each property's Google Maps
 
 | # | Source document | Chunk text |
 |---|----------------|------------|
-| 1 | | |
-| 2 | | |
-| 3 | | |
-| 4 | | |
-| 5 | | |
+| 1 | Google Maps reviews — Clover at The Parks | "I've lived at Clover at the Parks for almost three years, since the community was newly built, and my experience has only gotten better over time. Since Greystar took over management, living here has been wonderful. A special thank you to Chez the leasing manager, who has been incredibly responsive, professional, and helpful whenever I've needed assistance." |
+| 2 | Google Maps reviews — Vie Towers | "I met a young man today, who goes by the name of Hezzy. He was very kind and helpful." |
+| 3 | The Lanes at Union Market Shuttle Schedule (parsed from lanes_schedule.pdf) | "Weekday (Monday through Friday) The Lanes at Union Market Shuttle departures from Lanes APT: 6:00 AM, 7:00 AM, 8:00 AM, 9:00 AM, 10:00 AM, 11:00 AM, 12:00 PM, 1:00 PM, 2:00 PM, 3:00 PM, 4:00 PM, 5:00 PM, 6:00 PM, 7:00 PM, 8:00 PM, 9:00 PM, 10:00 PM, 11:00 PM. The shuttle leaves every 60 minutes. The first departure is 6:00 AM and the last departure is 11:00 PM." |
+| 4 | Howard University Student Affairs — Off-Campus Housing Resources FAQ | "Frequently Asked Questions I'm interested in a property. How do I apply? You must independently contact or visit the property to apply. The application process may include filling out a lease application, providing a security deposit and/or application fee, and undergoing a credit check to be approved for the apartment. In some instances, a co-signer may be required. Do I have to sign up for a 12-month lease? Leases normally occur in 12-, 9-, 6-, and sometimes 3-month intervals." |
+| 5 | Howard University Student Affairs — 6 Tips for Finding Off-Campus Housing | "If you decide to live with others, please ensure that all individuals involved are on the same page regarding living preferences. Are you early birds? Night owls? How often do you like to entertain guests? Remember, don't be afraid to ask questions! This will be a home that you all will share for the duration of the lease. If you need additional help, please view this list of questions to ask potential roommates." |
 
 ---
 
