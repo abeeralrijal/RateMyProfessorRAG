@@ -14,6 +14,8 @@
      Example: "Student reviews of CS professors at [university] — useful because official
      course descriptions don't reflect teaching style, exam difficulty, or workload." -->
 
+Off-campus housing information for students at Howard University — covering available housing options, leasing requirements, and other logistics students face when looking for a place to live near campus. This knowledge is valuable because official university channels point students to a short, curated list of partner listings and don't surface the lived experience of actually renting near campus: how responsive a landlord is, whether a building is safe or well-maintained, or what hidden costs and requirements come up during leasing. This system pulls together tenant reviews from different housing and review websites so students can see that on-the-ground context in one place before choosing where to live.
+
 ---
 
 ## Document Sources
@@ -34,6 +36,8 @@
 | 8 | | | |
 | 9 | | | |
 | 10 | | | |
+https://howard.offcampuspartners.com/resources/article/5524-frequently-asked-questions
+
 
 ---
 
