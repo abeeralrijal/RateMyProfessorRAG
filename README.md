@@ -87,9 +87,9 @@ Before chunking, `ingest.py` loads and cleans the raw documents: it drops Google
      Consider: context length limits, multilingual support, accuracy on domain-specific text,
      latency, and local vs. API-hosted. -->
 
-**Model used:**
+**Model used:** all-MiniLM-L6-v2, run locally through sentence-transformers, with chunks stored in a persistent ChromaDB collection (cosine distance).
 
-**Production tradeoff reflection:**
+**Production tradeoff reflection:** If cost was not a constraint, I would consider a larger API-hosted model like OpenAI's text-embedding-3-large for better accuracy on casual, domain-specific review language, at the cost of per-request pricing, network latency, and sending data off the local machine.
 
 ---
 
@@ -99,36 +99,34 @@ Before chunking, `ingest.py` loads and cleans the raw documents: it drops Google
      For at least 2 of the 3, explain why the returned chunks are relevant to the query.
      Results must be text — not screenshots. -->
 
-**Query 1:**
+**Query 1:** What time does the first weekday Clover at the Parks shuttle depart, and from which stop?
 
 Top returned chunks:
--
--
--
+- (distance 0.106, Clover at the Parks Shuttle Schedule) "Weekday (Monday through Friday) Clover at the Parks Shuttle departures from Clover @ Park: 6:00 AM, 7:00 AM, ... The first departure is 6:00 AM and the last departure is 11:00 PM."
+- (distance 0.136, Clover at the Parks Shuttle Schedule) the matching weekend schedule for the same stop
+- (distance 0.172, Clover at the Parks Shuttle Schedule) the weekday schedule for the Georgia Ave & Howard Pl stop
 
-Relevance explanation:
+Relevance explanation: The top result directly answers the question (6:00 AM from Clover @ Park) and nothing else in the corpus talks about shuttle departure times in this phrasing, so the embedding model matched it with very high confidence (distance well under 0.5). The next results are the same shuttle's other stops and day types, which is expected since they share almost identical sentence structure and vocabulary.
 
 ---
 
-**Query 2:**
+**Query 2:** What do tenants say about who manages Clover at the Parks and about the leasing manager there?
 
 Top returned chunks:
--
--
--
+- (distance 0.320, Google Maps reviews — Clover at The Parks) "Since Greystar took over management, living here has been wonderful. A special thank you to Chez the leasing manager, who has been incredibly responsive, professional, and helpful..."
+- (distance 0.381, Google Maps reviews — Clover at The Parks) a review praising "the leasing staff" and a named staff member for a smooth apartment transfer
+- (distance 0.404, Google Maps reviews — Clover at The Parks) a review saying "management truly cares about residents"
 
-Relevance explanation:
+Relevance explanation: All three top chunks are Clover reviews that specifically talk about management or leasing staff, which is exactly what the query asks about. The single best match names both the management company (Greystar) and the leasing manager (Chez), giving a directly verifiable answer.
 
 ---
 
-**Query 3:**
+**Query 3:** According to Howard's off-campus housing FAQ, what should a student do if someone asks them to send money before seeing the apartment or meeting the landlord?
 
 Top returned chunks:
--
--
--
-
-Relevance explanation:
+- (distance 0.422, Howard University Student Affairs — 6 Tips for Finding Off-Campus Housing) a generic sign-off paragraph ("We hope these tips are helpful!... contact the Office of Off-Campus Housing...")
+- (distance 0.441, Howard University Student Affairs — 6 Tips for Finding Off-Campus Housing) a disclaimer paragraph about the university not screening properties or landlords
+- (distance 0.477, Google Maps reviews — Vie Towers) an unrelated review about slow maintenance response
 
 ---
 
@@ -235,13 +233,13 @@ System response (refusal):
      "The embedding model treated the professor's nickname as out-of-vocabulary and returned
      results from an unrelated review" is an explanation. -->
 
-**Question that failed:**
+**Question that failed:** According to Howard's off-campus housing FAQ, what should a student do if someone asks them to send money before seeing the apartment or meeting the landlord?
 
-**What the system returned:**
+**Output:** The top 5 retrieved chunks were a generic closing paragraph from the tips article, a disclaimer about the university not screening landlords, and two unrelated apartment reviews. The chunk that actually contains the answer ("If you're asked to send money without seeing the apartments... SAY NO and report the scam to the Federal Trade Commission") ranked 8th, at distance 0.519, outside the top-5 the retrieval function returns.
 
-**Root cause (tied to a specific pipeline stage):**
+**Root cause:** This traces back to chunking, not embedding. The chunk that holds the answer starts with a heading and a general lead-in sentence ("6. Beware of Renters Scams... please beware of rental scams by looking for the signs of phantom rentals... and landlords that manage to get false listings onto reputable websites") before it ever gets to the specific actionable instruction about sending money. Because my chunker packs sentences up to 500 characters, that lead-in sentence and the actionable sentence ended up in the same chunk, and the embedding represents the chunk as a whole. The generic scam-awareness framing pulled the chunk's embedding away from the specific "send money before seeing the apartment" phrasing in the query, while other chunks that just happen to share surface-level words with the query (like "questions" and "off-campus housing" in the sign-off paragraph) ranked higher.
 
-**What you would change to fix it:**
+**Change:** Split on paragraph or heading boundaries in addition to sentence boundaries for the article PDFs, so a numbered section like "6. Beware of Renters Scams" does not get merged with unrelated sign-off content in the surrounding text, and so a chunk stays focused on one specific instruction rather than mixing a general topic sentence with the actionable detail.
 
 ---
 
