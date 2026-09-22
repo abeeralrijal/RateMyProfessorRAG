@@ -141,7 +141,20 @@ Top returned chunks:
 
 **System prompt grounding instruction:**
 
-**How source attribution is surfaced in the response:**
+```
+You are a housing information assistant for Howard University students. Answer the user's
+question using ONLY the information in the numbered context passages below. Do not use any
+outside knowledge, even if you are confident it is correct, and do not guess or speculate
+beyond what is written in the passages. Mention which passage number(s) support your answer.
+If the passages do not contain enough information to answer the question, respond with
+exactly: "I don't have enough information on that." and nothing else.
+```
+
+This is paired with two structural choices in `query.py`, not just the instruction text:
+1. **Relevance filtering before generation.** Retrieval returns the top 5 chunks, but only chunks with a cosine distance of 0.65 or lower are ever passed to the LLM as context. If none of the top 5 chunks clear that bar, the system returns the refusal message directly and never calls the LLM at all, so a truly out-of-scope question cannot produce a plausible-sounding guess.
+2. **Programmatic source attribution.** The source list shown to the user is built by the code from the metadata of the chunks that were actually sent to the model, not from anything the model writes. If the model still responds with the refusal sentence (because it read the passages and decided they don't answer the question), the code detects that exact string and clears the source list, so a refusal is never shown next to sources that were not actually used.
+
+**How source attribution is surfaced in the response:** `ask()` returns a `sources` list built from the retrieved chunks' `source` metadata (deduplicated, in relevance order). The interface displays this under "Retrieved from" beneath the answer. The model is also asked to reference passage numbers inline in its answer text, but the `sources` list the user sees does not depend on the model doing that correctly.
 
 ---
 
@@ -153,29 +166,29 @@ Top returned chunks:
 
 **Grounded response 1**
 
-Query:
+Query: What time does the first weekday Clover at the Parks shuttle depart, and from which stop?
 
-Response:
+Response: "The first weekday Clover at the Parks shuttle departs at 6:00 AM from the Clover @ Park stop [1][5]."
 
-Source attribution:
+Source attribution: Clover at the Parks Shuttle Schedule
 
 ---
 
 **Grounded response 2**
 
-Query:
+Query: What do tenants say about who manages Clover at the Parks and about the leasing manager there?
 
-Response:
+Response: "Tenants say that Greystar is the company that manages Clover at the Parks (passage 1). They praise the leasing manager, Chez, as 'incredibly responsive, professional, and helpful whenever I've needed assistance' (passage 1). Other reviews note that the leasing staff is friendly and helpful, with a particular shout-out to 'P' for making an apartment transfer smooth and stress-free (passage 2). Overall, tenants describe the management team as caring about residents and the staff as attentive and exceptional (passages 3 and 5)."
 
-Source attribution:
+Source attribution: Google Maps reviews — Clover at The Parks
 
 ---
 
 **Out-of-scope query**
 
-Query:
+Query: What is the airspeed velocity of an unladen swallow?
 
-System response (refusal):
+System response (refusal): "I don't have enough information on that." (Sources: none — no retrieved chunk cleared the relevance threshold, so the system refused without ever calling the LLM.)
 
 ---
 
@@ -184,9 +197,9 @@ System response (refusal):
 <!-- Describe your query interface: what are the input fields, what does the output look like?
      Then provide a complete sample interaction transcript showing a real exchange. -->
 
-**Input fields:**
+**Input fields:** A single text box ("Your question") and an "Ask" button, built with Streamlit (`app.py`, run with `streamlit run app.py`).
 
-**Output format:**
+**Output format:** Two sections below the input: "Answer" (the grounded response text) and "Retrieved from" (a bulleted list of the source document names the answer was actually drawn from, or a note that nothing was retrieved if the system refused).
 
 ---
 
@@ -195,9 +208,13 @@ System response (refusal):
 <!-- Show a complete query → response exchange as it actually appears in your interface.
      Must be text — not a screenshot. -->
 
-> **User:** 
+> **User:** What do tenants say about who manages Clover at the Parks and about the leasing manager there?
 
-> **System:** 
+> **System:**
+> **Answer:** Tenants say that Greystar is the company that manages Clover at the Parks (passage 1). They praise the leasing manager, Chez, as "incredibly responsive, professional, and helpful whenever I've needed assistance" (passage 1). Other reviews note that the leasing staff is friendly and helpful, with a particular shout-out to "P" for making an apartment transfer smooth and stress-free (passage 2). Overall, tenants describe the management team as caring about residents and the staff as attentive and exceptional (passages 3 and 5).
+>
+> **Retrieved from:**
+> - Google Maps reviews — Clover at The Parks
 
 ---
 
