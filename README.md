@@ -1,5 +1,7 @@
 # The Unofficial Guide — Project 1
 
+**Demo video:** https://drive.google.com/drive/folders/1pXIG_AWvbh7LoTV8eBxZitkhnKbfHTYY?usp=sharing
+
 > **How to use this template:**
 > Complete each section *after* you've built and tested the corresponding part of your system.
 > Do not write placeholder text — if a section isn't done yet, leave it blank and come back.
@@ -128,6 +130,8 @@ Top returned chunks:
 - (distance 0.441, Howard University Student Affairs — 6 Tips for Finding Off-Campus Housing) a disclaimer paragraph about the university not screening properties or landlords
 - (distance 0.477, Google Maps reviews — Vie Towers) an unrelated review about slow maintenance response
 
+Relevance explanation: this is my documented failure case (see Failure Case Analysis below). None of the top 3 chunks actually contain the scam warning the question asks about, even though that exact sentence exists elsewhere in the corpus — it just didn't rank high enough to make the top 5.
+
 ---
 
 ## Grounded Generation
@@ -226,14 +230,16 @@ System response (refusal): "I don't have enough information on that." (Sources: 
 
 | # | Question | Expected answer | System response (summarized) | Retrieval quality | Response accuracy |
 |---|----------|-----------------|------------------------------|-------------------|-------------------|
-| 1 | | | | | |
-| 2 | | | | | |
-| 3 | | | | | |
-| 4 | | | | | |
-| 5 | | | | | |
+| 1 | What time does the first weekday Clover at the Parks shuttle depart, and from which stop? | 6:00 AM, departing from Clover @ Park. | "6:00 AM from the Clover @ Park stop." Cited the shuttle schedule. | Relevant | Accurate |
+| 2 | What time is the last weekend shuttle departure from the Lanes APT stop on The Lanes shuttle schedule? | 11:00 PM. | "11:00 PM." Cited The Lanes shuttle schedule as passage 1 (a Clover shuttle chunk was also retrieved but not used in the answer). | Relevant | Accurate |
+| 3 | What do tenants say about who manages Clover at the Parks and about the leasing manager there? | Reviewers say Greystar took over management and describe the leasing manager, Chez, as responsive and helpful. | Named Greystar as the management company and quoted two reviews praising the leasing staff (Chez and P) and general management. | Relevant | Accurate |
+| 4 | According to Howard's off-campus housing FAQ, what should a student do if someone asks them to send money before seeing the apartment or meeting the landlord? | Say no and report the scam to the Federal Trade Commission. | "I don't have enough information on that." | Off-target | Inaccurate |
+| 5 | According to the same FAQ, what is the standard lease length for off-campus housing near Howard, and what other lease lengths are available? | A 12-month lease is the norm. Other options include 9-month, 6-month, sometimes 3-month, and month-to-month. | "A 12-month lease is the norm. Other lease lengths include 9-month, 6-month, 3-month, and month-to-month." | Relevant | Accurate |
 
 **Retrieval quality:** Relevant / Partially relevant / Off-target  
 **Response accuracy:** Accurate / Partially accurate / Inaccurate
+
+4 of 5 questions were answered accurately with correct source attribution. Question 4 is the one honest failure, explained in detail in Failure Case Analysis below — the system correctly refused rather than hallucinating, but it should have been able to answer.
 
 ---
 
@@ -252,11 +258,11 @@ System response (refusal): "I don't have enough information on that." (Sources: 
 
 **Question that failed:** According to Howard's off-campus housing FAQ, what should a student do if someone asks them to send money before seeing the apartment or meeting the landlord?
 
-**Output:** The top 5 retrieved chunks were a generic closing paragraph from the tips article, a disclaimer about the university not screening landlords, and two unrelated apartment reviews. The chunk that actually contains the answer ("If you're asked to send money without seeing the apartments... SAY NO and report the scam to the Federal Trade Commission") ranked 8th, at distance 0.519, outside the top-5 the retrieval function returns.
+**What the system returned:** The top 5 retrieved chunks were a generic closing paragraph from the tips article, a disclaimer about the university not screening landlords, and two unrelated apartment reviews. The chunk that actually contains the answer ("If you're asked to send money without seeing the apartments... SAY NO and report the scam to the Federal Trade Commission") ranked 8th, at distance 0.519, outside the top-5 the retrieval function returns. Because none of the top 5 cleared the 0.65 relevance threshold with the right content, the system correctly refused rather than answering from the wrong chunks — but the refusal is still the wrong outcome, since the answer does exist in the collection.
 
-**Root cause:** This traces back to chunking, not embedding. The chunk that holds the answer starts with a heading and a general lead-in sentence ("6. Beware of Renters Scams... please beware of rental scams by looking for the signs of phantom rentals... and landlords that manage to get false listings onto reputable websites") before it ever gets to the specific actionable instruction about sending money. Because my chunker packs sentences up to 500 characters, that lead-in sentence and the actionable sentence ended up in the same chunk, and the embedding represents the chunk as a whole. The generic scam-awareness framing pulled the chunk's embedding away from the specific "send money before seeing the apartment" phrasing in the query, while other chunks that just happen to share surface-level words with the query (like "questions" and "off-campus housing" in the sign-off paragraph) ranked higher.
+**Root cause (tied to a specific pipeline stage):** This traces back to chunking, not embedding. The chunk that holds the answer starts with a heading and a general lead-in sentence ("6. Beware of Renters Scams... please beware of rental scams by looking for the signs of phantom rentals... and landlords that manage to get false listings onto reputable websites") before it ever gets to the specific actionable instruction about sending money. Because my chunker packs sentences up to 500 characters, that lead-in sentence and the actionable sentence ended up in the same chunk, and the embedding represents the chunk as a whole. The generic scam-awareness framing pulled the chunk's embedding away from the specific "send money before seeing the apartment" phrasing in the query, while other chunks that just happen to share surface-level words with the query (like "questions" and "off-campus housing" in the sign-off paragraph) ranked higher.
 
-**Change:** Split on paragraph or heading boundaries in addition to sentence boundaries for the article PDFs, so a numbered section like "6. Beware of Renters Scams" does not get merged with unrelated sign-off content in the surrounding text, and so a chunk stays focused on one specific instruction rather than mixing a general topic sentence with the actionable detail.
+**What you would change to fix it:** Split on paragraph or heading boundaries in addition to sentence boundaries for the article PDFs, so a numbered section like "6. Beware of Renters Scams" does not get merged with unrelated sign-off content in the surrounding text, and so a chunk stays focused on one specific instruction rather than mixing a general topic sentence with the actionable detail.
 
 ---
 
@@ -265,9 +271,9 @@ System response (refusal): "I don't have enough information on that." (Sources: 
 <!-- Reflect on how planning.md shaped your implementation.
      Answer both questions with at least 2–3 sentences each. -->
 
-**One way the spec helped you during implementation:**
+**One way the spec helped you during implementation:** Working out the Chunking Strategy in planning.md before writing any code meant I had already looked at the actual character lengths of my reviews (median 225, some over 4,000) before picking a chunk size. That made the 500/100 split a specific, defensible choice instead of a guess, and I never had to backtrack and re-chunk everything after seeing bad retrieval results.
 
-**One way your implementation diverged from the spec, and why:**
+**One way your implementation diverged from the spec, and why:** planning.md named `meta-llama/llama-4-scout-17b-16e-instruct` as the LLM, matching the assignment's recommended stack. When I actually wired up generation, Groq returned a 404 for that model — it is no longer served. I checked Groq's live model list from the API and substituted `openai/gpt-oss-20b`, a currently available free-tier chat model. I also added a relevance-distance filter (0.65 cosine distance cutoff) before generation, which was not explicitly in my original Retrieval Approach section — I added it once I saw that some retrieved chunks were clearly off-topic, as a structural way to guarantee refusal on out-of-scope questions instead of relying on the prompt alone.
 
 ---
 
@@ -284,12 +290,12 @@ System response (refusal): "I don't have enough information on that." (Sources: 
 
 **Instance 1**
 
-- *What I gave the AI:*
-- *What it produced:*
-- *What I changed or overrode:*
+- *What I gave the AI:* My Documents section and Chunking Strategy section from planning.md, and asked it to write `ingest.py` to load and clean all the raw files and then split the cleaned text into chunks using a 500 character / 100 character overlap sentence-packing strategy.
+- *What it produced:* A working ingestion script, plus a `chunk_text()` function that packs sentences up to the size limit and carries trailing sentences into the next chunk for overlap. The first version had a bug: when a chunk was already a single sentence close to the size limit and the next sentence didn't fit, the overlap carried over the exact same sentence, so the loop kept re-appending the same chunk forever instead of making progress.
+- *What I changed or overrode:* I had it fix the overlap logic so it never carries over the very first sentence of a chunk into the next chunk's overlap, which guarantees the sentence list shrinks on every iteration and the loop terminates. I verified the fix by running the pipeline and checking there were no empty or duplicate chunks in the output.
 
 **Instance 2**
 
-- *What I gave the AI:*
-- *What it produced:*
-- *What I changed or overrode:*
+- *What I gave the AI:* My grounding requirement (answer from retrieved context only, refuse if the context is insufficient, always show source attribution) and asked it to write `query.py` connecting retrieval to Groq's LLM, using the model named in the assignment's recommended stack.
+- *What it produced:* A prompt template and an `ask()` function, initially calling `meta-llama/llama-4-scout-17b-16e-instruct` exactly as specified in planning.md.
+- *What I changed or overrode:* That call failed with a 404 because Groq no longer serves that model. I had it query Groq's `/models` endpoint directly to see what was actually available, then swapped in `openai/gpt-oss-20b`. I also directed it to add a distance-based relevance filter before generation and to compute the source attribution list from the retrieved chunk metadata in code, rather than trusting the model's own citations, after noticing that a refusal response could otherwise still show sources that weren't actually used.
